@@ -1,0 +1,11 @@
+{
+    "name": "quickpos/landing",
+    "description": "QuickPOS Landing Page",
+    "require": {
+        "php": ">=8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "phpstan/phpstan": "^1.10"
+    }
+}

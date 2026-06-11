@@ -1,0 +1,66 @@
+name: QuickPOS CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/*, bugfix/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: PHP Syntax & Tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: PHP Syntax Check
+        run: |
+          find . -name '*.php' -not -path './vendor/*' -exec php -l {} \;
+
+      - name: Run PHPUnit Tests
+        continue-on-error: true
+        run: |
+          if [ -f composer.json ]; then
+            composer install --no-interaction
+            vendor/bin/phpunit tests/ || true
+          else
+            echo "No composer.json found, skipping tests"
+          fi
+
+      - name: Validate Commit Messages
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: |
+          COMMIT_MSG=$(git log --format=%B -n 1)
+          if echo "$COMMIT_MSG" | grep -qE '^\[QUIC-[0-9]+\]|^\[POS-[0-9]+\]'; then
+            echo "✅ Valid commit: $COMMIT_MSG"
+          else
+            echo "⚠️ Warning: Commit should start with [QUIC-XXX] or [POS-XXX]"
+          fi
+
+  code-quality:
+    runs-on: ubuntu-latest
+    name: Code Quality Check
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Install PHPStan
+        run: composer require --dev phpstan/phpstan || true
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse . --level=5 || true
